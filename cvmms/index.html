@@ -57,6 +57,7 @@
 
     .toolbar {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
@@ -92,6 +93,31 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .difficulty {
+      display: grid;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .difficulty label {
+      color: #aab7e8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .difficulty select {
+      min-height: 42px;
+      border: 1px solid #465579;
+      border-radius: 12px;
+      padding: 0 10px;
+      background: #1a2339;
+      color: #f4f6ff;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .restart {
       border: 0;
       border-radius: 12px;
@@ -110,6 +136,7 @@
     }
 
     .restart:focus-visible,
+    .difficulty select:focus-visible,
     .card:focus-visible {
       outline: 3px solid #ffe28a;
       outline-offset: 3px;
@@ -261,6 +288,15 @@
           <strong id="timer">00:00</strong>
         </div>
       </div>
+      <div class="difficulty">
+        <label for="difficulty">Quantidade</label>
+        <select id="difficulty">
+          <option value="4">8 cartas — Fácil</option>
+          <option value="6">12 cartas — Médio</option>
+          <option value="8" selected>16 cartas — Difícil</option>
+          <option value="10">20 cartas — Desafio</option>
+        </select>
+      </div>
       <button class="restart" id="restart" type="button">Recomeçar</button>
     </section>
 
@@ -270,12 +306,13 @@
   </main>
 
   <script>
-    const symbols = ["🍓", "🚀", "🐙", "🌈", "🎸", "🦊", "🍩", "🌻"];
+    const symbols = ["🍓", "🚀", "🐙", "🌈", "🎸", "🦊", "🍩", "🌻", "🐸", "⚽"];
     const board = document.querySelector("#board");
     const movesDisplay = document.querySelector("#moves");
     const timerDisplay = document.querySelector("#timer");
     const message = document.querySelector("#message");
     const restartButton = document.querySelector("#restart");
+    const difficultySelect = document.querySelector("#difficulty");
 
     let firstCard = null;
     let secondCard = null;
@@ -285,6 +322,7 @@
     let seconds = 0;
     let timer = null;
     let mismatchTimeout = null;
+    let currentPairCount = Number(difficultySelect.value);
 
     function shuffle(items) {
       const shuffled = [...items];
@@ -354,7 +392,7 @@
         matches += 1;
         resetTurn();
 
-        if (matches === symbols.length) {
+        if (matches === currentPairCount) {
           window.clearInterval(timer);
           timer = null;
           message.textContent = `Parabéns! Você venceu em ${moves} jogadas e ${formatTime(seconds)}.`;
@@ -399,10 +437,13 @@
       timerDisplay.textContent = "00:00";
       message.textContent = "Vire duas cartas para começar.";
       message.classList.remove("won");
-      board.replaceChildren(...shuffle([...symbols, ...symbols]).map(createCard));
+      currentPairCount = Number(difficultySelect.value);
+      const gameSymbols = symbols.slice(0, currentPairCount);
+      board.replaceChildren(...shuffle([...gameSymbols, ...gameSymbols]).map(createCard));
     }
 
     restartButton.addEventListener("click", newGame);
+    difficultySelect.addEventListener("change", newGame);
     newGame();
   </script>
 </body>
