@@ -31,7 +31,7 @@
     }
 
     .game {
-      width: min(100%, 520px);
+      width: min(100%, 620px);
       text-align: center;
     }
 
@@ -57,6 +57,7 @@
 
     .toolbar {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
@@ -65,6 +66,7 @@
 
     .stats {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
@@ -92,6 +94,31 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .difficulty {
+      display: grid;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .difficulty label {
+      color: #aab7e8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .difficulty select {
+      min-height: 42px;
+      border: 1px solid #465579;
+      border-radius: 12px;
+      padding: 0 10px;
+      background: #1a2339;
+      color: #f4f6ff;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .restart {
       border: 0;
       border-radius: 12px;
@@ -110,9 +137,28 @@
     }
 
     .restart:focus-visible,
+    .difficulty select:focus-visible,
     .card:focus-visible {
       outline: 3px solid #ffe28a;
       outline-offset: 3px;
+    }
+
+    .progress {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      color: #c4cbed;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .progress strong {
+      color: #f4f6ff;
+    }
+
+    .progress-separator {
+      color: #6f7b9d;
     }
 
     .board {
@@ -214,6 +260,22 @@
       border: 0;
     }
 
+    @media (max-width: 520px) {
+      .toolbar {
+        justify-content: center;
+      }
+
+      .stats {
+        justify-content: center;
+        width: 100%;
+      }
+
+      .difficulty,
+      .restart {
+        flex: 1;
+      }
+    }
+
     @media (max-width: 420px) {
       .board {
         gap: 8px;
@@ -231,6 +293,10 @@
 
       .restart {
         padding: 11px 12px;
+      }
+
+      .progress {
+        font-size: 0.88rem;
       }
     }
 
@@ -256,26 +322,59 @@
           <span class="stat-label">Jogadas</span>
           <strong id="moves">0</strong>
         </div>
+
         <div class="stat">
           <span class="stat-label">Tempo</span>
           <strong id="timer">00:00</strong>
         </div>
       </div>
-      <button class="restart" id="restart" type="button">Recomeçar</button>
+
+      <div class="difficulty">
+        <label for="difficulty">Quantidade</label>
+        <select id="difficulty">
+          <option value="4">8 cartas — Fácil</option>
+          <option value="6">12 cartas — Médio</option>
+          <option value="8" selected>16 cartas — Difícil</option>
+          <option value="10">20 cartas — Desafio</option>
+        </select>
+      </div>
+
+      <button class="restart" id="restart" type="button">
+        Recomeçar
+      </button>
     </section>
 
+    <p class="progress" aria-live="polite">
+      <span>Pares encontrados: <strong id="matches">0</strong></span>
+      <span class="progress-separator">•</span>
+      <span>Pares restantes: <strong id="remaining">0</strong></span>
+    </p>
+
     <section class="board" id="board" aria-label="Cartas do jogo"></section>
-    <p class="message" id="message" role="status" aria-live="polite">Vire duas cartas para começar.</p>
-    <p class="sr-only" id="instructions">Use Tab para escolher uma carta e Enter ou Espaço para virá-la.</p>
+
+    <p class="message" id="message" role="status" aria-live="polite">
+      Vire duas cartas para começar.
+    </p>
+
+    <p class="sr-only" id="instructions">
+      Use Tab para escolher uma carta e Enter ou Espaço para virá-la.
+    </p>
   </main>
 
   <script>
-    const symbols = ["🍓", "🚀", "🐙", "🌈", "🎸", "🦊", "🍩", "🌻"];
+    const symbols = [
+      "🍓", "🚀", "🐙", "🌈", "🎸",
+      "🦊", "🍩", "🌻", "🐸", "⚽"
+    ];
+
     const board = document.querySelector("#board");
     const movesDisplay = document.querySelector("#moves");
     const timerDisplay = document.querySelector("#timer");
+    const matchesDisplay = document.querySelector("#matches");
+    const remainingDisplay = document.querySelector("#remaining");
     const message = document.querySelector("#message");
     const restartButton = document.querySelector("#restart");
+    const difficultySelect = document.querySelector("#difficulty");
 
     let firstCard = null;
     let secondCard = null;
@@ -285,24 +384,45 @@
     let seconds = 0;
     let timer = null;
     let mismatchTimeout = null;
+    let currentPairCount = Number(difficultySelect.value);
 
     function shuffle(items) {
       const shuffled = [...items];
+
       for (let index = shuffled.length - 1; index > 0; index -= 1) {
         const randomIndex = Math.floor(Math.random() * (index + 1));
-        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+
+        [shuffled[index], shuffled[randomIndex]] = [
+          shuffled[randomIndex],
+          shuffled[index]
+        ];
       }
+
       return shuffled;
     }
 
     function formatTime(totalSeconds) {
-      const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-      const remainder = (totalSeconds % 60).toString().padStart(2, "0");
+      const minutes = Math.floor(totalSeconds / 60)
+        .toString()
+        .padStart(2, "0");
+
+      const remainder = (totalSeconds % 60)
+        .toString()
+        .padStart(2, "0");
+
       return `${minutes}:${remainder}`;
+    }
+
+    function updateProgress() {
+      const remaining = currentPairCount - matches;
+
+      matchesDisplay.textContent = matches;
+      remainingDisplay.textContent = remaining;
     }
 
     function startTimer() {
       if (timer !== null) return;
+
       timer = window.setInterval(() => {
         seconds += 1;
         timerDisplay.textContent = formatTime(seconds);
@@ -311,26 +431,42 @@
 
     function createCard(symbol, index) {
       const card = document.createElement("button");
+
       card.className = "card";
       card.type = "button";
       card.dataset.symbol = symbol;
       card.dataset.index = index + 1;
-      card.setAttribute("aria-label", `Carta ${index + 1}, virada para baixo`);
+
+      card.setAttribute(
+        "aria-label",
+        `Carta ${index + 1}, virada para baixo`
+      );
+
       card.setAttribute("aria-describedby", "instructions");
+
       card.innerHTML = `
         <span class="card-inner" aria-hidden="true">
           <span class="card-face card-back">?</span>
           <span class="card-face card-front">${symbol}</span>
         </span>
       `;
+
       card.addEventListener("click", () => flipCard(card));
+
       return card;
     }
 
     function flipCard(card) {
-      if (locked || card === firstCard || card.classList.contains("is-matched")) return;
+      if (
+        locked ||
+        card === firstCard ||
+        card.classList.contains("is-matched")
+      ) {
+        return;
+      }
 
       startTimer();
+
       card.classList.add("is-open");
       card.setAttribute("aria-label", `Carta: ${card.dataset.symbol}`);
 
@@ -341,38 +477,65 @@
 
       secondCard = card;
       locked = true;
+
       moves += 1;
       movesDisplay.textContent = moves;
 
       if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
         firstCard.classList.add("is-matched");
         secondCard.classList.add("is-matched");
+
         firstCard.disabled = true;
         secondCard.disabled = true;
-        firstCard.setAttribute("aria-label", `Par encontrado: ${firstCard.dataset.symbol}`);
-        secondCard.setAttribute("aria-label", `Par encontrado: ${secondCard.dataset.symbol}`);
+
+        firstCard.setAttribute(
+          "aria-label",
+          `Par encontrado: ${firstCard.dataset.symbol}`
+        );
+
+        secondCard.setAttribute(
+          "aria-label",
+          `Par encontrado: ${secondCard.dataset.symbol}`
+        );
+
         matches += 1;
+        updateProgress();
         resetTurn();
 
-        if (matches === symbols.length) {
+        if (matches === currentPairCount) {
           window.clearInterval(timer);
           timer = null;
-          message.textContent = `Parabéns! Você venceu em ${moves} jogadas e ${formatTime(seconds)}.`;
+
+          message.textContent =
+            `Parabéns! Você encontrou todos os ${matches} pares ` +
+            `em ${moves} jogadas e ${formatTime(seconds)}.`;
+
           message.classList.add("won");
         } else {
-          message.textContent = "Boa! Você encontrou um par.";
+          message.textContent =
+            `Boa! Você encontrou um par. ` +
+            `Faltam ${currentPairCount - matches} pares.`;
+
           locked = false;
         }
+
         return;
       }
 
       message.textContent = "Não foi dessa vez. Tente novamente!";
+
       const cardsToClose = [firstCard, secondCard];
+
       mismatchTimeout = window.setTimeout(() => {
         cardsToClose.forEach((openCard) => {
           openCard.classList.remove("is-open");
-          openCard.setAttribute("aria-label", `Carta ${openCard.dataset.index}, virada para baixo`);
+
+          openCard.setAttribute(
+            "aria-label",
+            `Carta ${openCard.dataset.index}, virada para baixo`
+          );
         });
+
         resetTurn();
         locked = false;
         mismatchTimeout = null;
@@ -385,8 +548,14 @@
     }
 
     function newGame() {
-      if (timer !== null) window.clearInterval(timer);
-      if (mismatchTimeout !== null) window.clearTimeout(mismatchTimeout);
+      if (timer !== null) {
+        window.clearInterval(timer);
+      }
+
+      if (mismatchTimeout !== null) {
+        window.clearTimeout(mismatchTimeout);
+      }
+
       mismatchTimeout = null;
       firstCard = null;
       secondCard = null;
@@ -395,14 +564,31 @@
       matches = 0;
       seconds = 0;
       timer = null;
+
       movesDisplay.textContent = "0";
       timerDisplay.textContent = "00:00";
+
       message.textContent = "Vire duas cartas para começar.";
       message.classList.remove("won");
-      board.replaceChildren(...shuffle([...symbols, ...symbols]).map(createCard));
+
+      currentPairCount = Number(difficultySelect.value);
+
+      updateProgress();
+
+      const gameSymbols = symbols.slice(0, currentPairCount);
+      const cards = shuffle([
+        ...gameSymbols,
+        ...gameSymbols
+      ]);
+
+      board.replaceChildren(
+        ...cards.map(createCard)
+      );
     }
 
     restartButton.addEventListener("click", newGame);
+    difficultySelect.addEventListener("change", newGame);
+
     newGame();
   </script>
 </body>
