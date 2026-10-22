@@ -362,11 +362,7 @@
   </main>
 
   <script>
-    const symbols = [
-      "🍓", "🚀", "🐙", "🌈", "🎸",
-      "🦊", "🍩", "🌻", "🐸", "⚽"
-    ];
-
+    const symbols = ["🍓", "🚀", "🐙", "🌈", "🎸", "🦊", "🍩", "🌻", "🐸", "⚽"];
     const board = document.querySelector("#board");
     const movesDisplay = document.querySelector("#moves");
     const timerDisplay = document.querySelector("#timer");
@@ -570,25 +566,13 @@
 
       message.textContent = "Vire duas cartas para começar.";
       message.classList.remove("won");
-
       currentPairCount = Number(difficultySelect.value);
-
-      updateProgress();
-
       const gameSymbols = symbols.slice(0, currentPairCount);
-      const cards = shuffle([
-        ...gameSymbols,
-        ...gameSymbols
-      ]);
-
-      board.replaceChildren(
-        ...cards.map(createCard)
-      );
+      board.replaceChildren(...shuffle([...gameSymbols, ...gameSymbols]).map(createCard));
     }
 
     restartButton.addEventListener("click", newGame);
     difficultySelect.addEventListener("change", newGame);
-
     newGame();
   </script>
 </body>
